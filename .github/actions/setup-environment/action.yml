@@ -1,0 +1,19 @@
+name: Setup Environment
+
+runs:
+    steps:
+        - name: Checkout Code
+          uses: actions/checkout@v2
+        - name: Setup Node
+          uses: actions/setup-node@v2
+          with:
+            node-version: "16"
+        - name: Setup Java
+          uses: actions/setup-java@v2
+          with:
+            distribution: "zulu"
+            java-version: "17"
+        - name: Install NPM Dependencies
+          run: npm i
+        - name: Run verify build command
+          run: npm run verify
