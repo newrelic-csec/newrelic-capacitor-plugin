@@ -14,3 +14,6 @@ runs:
           with:
             distribution: "zulu"
             java-version: "17"
+        - name: Install NPM Dependencies
+          shell: bash
+          run: npm i
