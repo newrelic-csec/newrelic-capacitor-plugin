@@ -155,7 +155,7 @@ public class NewRelicCapacitorPluginPlugin: CAPPlugin {
         NRLogger.setLogLevels(logLevel)
         NewRelic.setPlatform(NRMAApplicationPlatform.platform_Capacitor)
         let selector = NSSelectorFromString("setPlatformVersion:")
-        NewRelic.perform(selector, with:"1.2.1")
+        NewRelic.perform(selector, with:"1.3.4")
 
         DispatchQueue.main.async {
             if collectorAddress == nil && crashCollectorAddress == nil {
@@ -314,6 +314,36 @@ public class NewRelicCapacitorPluginPlugin: CAPPlugin {
             traceHeaders: traceAttributes,
             andParams: nil
         )
+        call.resolve()
+    }
+    
+    @objc func noticeNetworkFailure(_ call: CAPPluginCall) {
+        guard let url = call.getString("url"),
+              let method = call.getString("method"),
+              let startTime = call.getDouble("startTime"),
+              let endTime = call.getDouble("endTime"),
+              let failure = call.getString("failure")
+        else {
+            
+            call.reject("Bad parameters given to noticeNetworkFailure")
+            return
+        }
+        
+        let nsurl = URL(string: url)
+        
+        let dict: [String: NSNumber] = [
+            "Unknown": NSNumber(value: NRURLErrorUnknown.rawValue),
+            "BadURL": NSNumber(value: NRURLErrorBadURL.rawValue),
+            "TimedOut": NSNumber(value: NRURLErrorTimedOut.rawValue),
+            "CannotConnectToHost": NSNumber(value: NRURLErrorCannotConnectToHost.rawValue),
+            "DNSLookupFailed": NSNumber(value: NRURLErrorDNSLookupFailed.rawValue),
+            "BadServerResponse": NSNumber(value: NRURLErrorBadServerResponse.rawValue),
+            "SecureConnectionFailed": NSNumber(value: NRURLErrorSecureConnectionFailed.rawValue)
+        ]
+        
+        let iOSFailureCode = dict[failure]
+        NewRelic.noticeNetworkFailure(for: nsurl,httpMethod: method,
+                                      startTime: startTime,endTime: endTime, andFailureCode:iOSFailureCode as! Int)
         call.resolve()
     }
     
@@ -529,4 +559,19 @@ public class NewRelicCapacitorPluginPlugin: CAPPlugin {
         ])
     }
     
+    @objc func addHTTPHeadersTrackingFor(_ call: CAPPluginCall) {
+        
+        guard let headers = call.getArray("headers")?.capacitor.replacingNullValues() as? [String] else {
+            return ;
+        }
+        
+        let headersDict = NewRelic.addHTTPHeaderTracking(for: headers)
+    }
+    
+    @objc func getHTTPHeadersTrackingFor(_ call: CAPPluginCall) {
+        
+        call.resolve([
+            "headersList": "[]"
+        ])
+    }
 }
